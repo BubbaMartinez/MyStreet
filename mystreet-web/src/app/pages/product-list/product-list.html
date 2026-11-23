@@ -1,0 +1,39 @@
+<label for="brand">Marca</label>
+<select id="brand" [value]="selectedBrand()" (change)="onBrandChange($event)">
+  <option value="">Todas</option>
+  @for (b of brands(); track b) {
+    <option [value]="b">{{ b }}</option>
+  }
+</select>
+
+<label for="size">Talla</label>
+<select id="size" [value]="selectedSize()" (change)="onSizeChange($event)">
+  <option value="">Todas</option>
+  @for (s of sizes(); track s) {
+    <option [value]="s">{{ s }}</option>
+  }
+</select>
+
+@if (selectedBrand() || selectedSize()) {
+  <button type="button" (click)="clearFilters()">Limpiar filtros</button>
+}
+@if (loading()) {
+  <p>Cargando catálogo...</p>
+} @else if (error()) {
+  <p>{{ error() }}</p>
+} @else {
+<div class="grid">
+@if (products().length === 0) {
+  <p>No hay productos para esa marca.</p>
+}
+  @for (p of products(); track p.id) {
+    <h3><a [routerLink]="['/products', p.id]">{{ p.name }}</a></h3>
+    <article class="card">
+      <img [src]="p.imageUrl" [alt]="p.name" />
+      <h3>{{ p.name }}</h3>
+      <p>{{ p.brand }}</p>
+      <p>{{ p.price | currency }}</p>
+      <p>Tallas: {{ p.sizes.join(', ') }}</p>
+    </article>
+  }
+</div>}

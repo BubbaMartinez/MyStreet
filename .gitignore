@@ -1,0 +1,13 @@
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/tasks.json
+
+# Compilados y dependencias
+node_modules/
+target/
+dist/
+.angular/
+*.log

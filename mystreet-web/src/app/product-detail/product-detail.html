@@ -1,0 +1,25 @@
+<a routerLink="/">← Volver al catálogo</a>
+
+@if (loading()) {
+  <p>Cargando producto...</p>
+} @else if (error()) {
+  <p>{{ error() }}</p>
+} @else if (product(); as p) {
+  <article class="detail">
+    <img [src]="p.imageUrl" [alt]="p.name" />
+    <div>
+      <h2>{{ p.name }}</h2>
+      <p>{{ p.brand }}</p>
+      <p>{{ p.description }}</p>
+      <p>{{ p.price | currency }}</p>
+
+      <p>Tallas disponibles: {{ p.sizes.join(', ') }}</p>
+
+      @if (p.stockQty > 0) {
+        <p>En stock: {{ p.stockQty }} unidades</p>
+      } @else {
+        <p>Agotado</p>
+      }
+    </div>
+  </article>
+}

@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "backend",
+      "type": "shell",
+      "command": ".\\mvnw.cmd spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/mystreet-backend" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "frontend",
+      "type": "shell",
+      "command": "npm start",
+      "options": { "cwd": "${workspaceFolder}/mystreet-web" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: all",
+      "dependsOn": ["backend", "frontend"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    }
+  ]
+}
+
