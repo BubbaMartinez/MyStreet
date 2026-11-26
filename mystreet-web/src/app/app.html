@@ -1,2 +1,23 @@
-<h1>Hola MyStreeT</h1>
-<router-outlet />
+<header class="navbar">
+  <a routerLink="/" class="brand">MyStreeT</a>
+
+  <nav>
+    <a routerLink="/">Catálogo</a>
+
+    @if (auth.isLoggedIn()) {
+      <a routerLink="/orders">Mis pedidos</a>
+      @if (auth.isAdmin()) {
+        <a routerLink="/admin">Admin</a>
+      }
+      <span class="user">{{ auth.user()?.fullName }}</span>
+      <button type="button" (click)="auth.logout()">Cerrar sesión</button>
+    } @else {
+      <a routerLink="/login">Entrar</a>
+      <a routerLink="/register">Registrarse</a>
+    }
+  </nav>
+</header>
+
+<main>
+  <router-outlet />
+</main>
