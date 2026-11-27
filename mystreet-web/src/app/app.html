@@ -3,7 +3,7 @@
 
   <nav>
     <a routerLink="/">Catálogo</a>
-
+    <span class="cart" aria-label="Artículos en el carrito">🛒 {{ cart.count() }}</span>
     @if (auth.isLoggedIn()) {
       <a routerLink="/orders">Mis pedidos</a>
       @if (auth.isAdmin()) {

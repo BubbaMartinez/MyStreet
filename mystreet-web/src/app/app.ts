@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { AuthService } from './services/auth';
+import { CartService } from './services/cart';
 
 @Component({
   imports: [RouterOutlet, RouterLink],
@@ -10,4 +11,5 @@ import { AuthService } from './services/auth';
 })
 export class App {
   auth = inject(AuthService);
+  cart = inject(CartService);
 }
