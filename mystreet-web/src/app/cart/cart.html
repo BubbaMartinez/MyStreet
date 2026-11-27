@@ -1,0 +1,40 @@
+<h2>Tu carrito</h2>
+
+@if (cart.cartItems().length === 0) {
+  <p>Tu carrito está vacío.</p>
+  <a routerLink="/">Ver catálogo</a>
+} @else {
+  <ul class="cart-list">
+    @for (item of cart.cartItems(); track item.productId + '-' + item.size) {
+      <li class="cart-line">
+        <img [src]="item.imageUrl" [alt]="item.name" width="80" />
+
+        <div class="info">
+          <a [routerLink]="['/products', item.productId]">{{ item.name }}</a>
+          <p>{{ item.brand }} · Talla {{ item.size }}</p>
+          <p>{{ item.price | currency }} c/u</p>
+        </div>
+
+        <div class="qty">
+          <button type="button" aria-label="Quitar una unidad"
+                  (click)="cart.setQuantity(item.productId, item.size, item.quantity - 1)">−</button>
+          <span>{{ item.quantity }}</span>
+          <button type="button" aria-label="Agregar una unidad"
+                  [disabled]="item.quantity >= item.stockQty"
+                  (click)="cart.setQuantity(item.productId, item.size, item.quantity + 1)">+</button>
+        </div>
+
+        <p class="line-total">{{ item.price * item.quantity | currency }}</p>
+
+        <button type="button" (click)="cart.remove(item.productId, item.size)">Quitar</button>
+      </li>
+    }
+  </ul>
+
+  <p class="total"><strong>Total:</strong> {{ cart.total() | currency }}</p>
+
+  <div class="actions">
+    <button type="button" (click)="cart.clear()">Vaciar carrito</button>
+    <button type="button" disabled title="Disponible en el Sprint 3">Continuar al checkout</button>
+  </div>
+}

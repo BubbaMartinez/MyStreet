@@ -7,10 +7,12 @@ import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
 import { Orders } from './orders/orders';
 import { AdminPanel } from './admin-panel/admin-panel';
+import { Cart } from './cart/cart';
 
 export const routes: Routes = [
   { path: '', component: ProductList },
   { path: 'products/:id', component: ProductDetail },
+  { path: 'cart', component: Cart },
   { path: 'login', component: Login },
   { path: 'register', component: Register },
   { path: 'orders', component: Orders, canActivate: [authGuard] },
