@@ -1,0 +1,13 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 22rem;
+}
+
+.field-error,
+.form-error {
+  color: #b00020;
+  margin: 0;
+  font-size: 0.875rem;
+}

@@ -22,4 +22,27 @@
       }
     </div>
   </article>
+    @if (p.stockQty > 0) {
+    <label for="size">Talla</label>
+    <select id="size" (change)="onSizeChange($event)">
+        <option value="">Elige una talla</option>
+        @for (s of p.sizes; track s) {
+        <option [value]="s">{{ s }}</option>
+        }
+    </select>
+
+    <div class="qty">
+        <button type="button" (click)="changeQuantity(-1, p.stockQty)" [disabled]="quantity() <= 1">-</button>
+        <span>{{ quantity() }}</span>
+        <button type="button" (click)="changeQuantity(1, p.stockQty)" [disabled]="quantity() >= p.stockQty">+</button>
+    </div>
+
+    <button type="button" (click)="addToCart(p)" [disabled]="!selectedSize()">
+        Agregar al carrito
+    </button>
+
+    @if (added()) {
+        <p role="status">Agregado al carrito ✔</p>
+    }
+    }
 }

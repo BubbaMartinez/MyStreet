@@ -1,13 +1,15 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-
+import { Component, inject } from '@angular/core';
+import { RouterLink, RouterOutlet } from '@angular/router';
+import { AuthService } from './services/auth';
+import { CartService } from './services/cart';
 
 @Component({
-imports: [RouterOutlet],
+  imports: [RouterOutlet, RouterLink],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',
 })
 export class App {
-  protected readonly title = signal('mystreet-web');
+  auth = inject(AuthService);
+  cart = inject(CartService);
 }

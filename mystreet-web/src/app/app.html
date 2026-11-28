@@ -1,2 +1,23 @@
-<h1>Hola MyStreeT</h1>
-<router-outlet />
+<header class="navbar">
+ <a routerLink="/cart" class="cart" aria-label="Ver carrito">🛒 {{ cart.count() }}</a>
+
+  <nav>
+    <a routerLink="/">Catálogo</a>
+    <span class="cart" aria-label="Artículos en el carrito">🛒 {{ cart.count() }}</span>
+    @if (auth.isLoggedIn()) {
+      <a routerLink="/orders">Mis pedidos</a>
+      @if (auth.isAdmin()) {
+        <a routerLink="/admin">Admin</a>
+      }
+      <span class="user">{{ auth.user()?.fullName }}</span>
+      <button type="button" (click)="auth.logout()">Cerrar sesión</button>
+    } @else {
+      <a routerLink="/login">Entrar</a>
+      <a routerLink="/register">Registrarse</a>
+    }
+  </nav>
+</header>
+
+<main>
+  <router-outlet />
+</main>

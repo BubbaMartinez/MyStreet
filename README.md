@@ -1,6 +1,6 @@
 # MyStreeT (Foundation) — Sneaker Shopping Web Application
 
-> **Estado del documento:** Sprint 1 completado (catálogo conectado a la API).
+> **Estado del documento:** Sprint 2 completado (autenticación con JWT y carrito de invitado).
 > Los comandos y el registro de prompts se actualizan al cierre de cada sprint.
 
 ## 1. Descripción del proyecto
@@ -41,6 +41,7 @@ MyStreeT es una aplicación web full-stack de tienda de sneakers que demuestra f
 ### 3.3 Autenticación con JWT stateless
 
 - **Decisión:** JSON Web Tokens sin estado enviados en el encabezado `Authorization: Bearer <token>`, almacenados en `localStorage` en el frontend.
+- **Implementación:** el token (HS256) lleva el correo como `sub` y los claims `userId`, `name` e `isAdmin`, y expira a las 2 horas (`app.jwt.expiration-minutes`). Un filtro de Spring Security lo valida en cada petición; si falta o es inválido la API responde 401 en JSON, y sin permisos suficientes responde 403.
 - **Ventajas:**
   - **Desacoplamiento cliente-servidor:** el backend no necesita almacenar sesiones para validar cada solicitud, lo que simplifica la arquitectura REST y la escalabilidad horizontal.
   - **Integración limpia en Angular:** un `HttpInterceptor` adjunta el token a cada petición protegida y los Route Guards (`authGuard`, `adminGuard`) evalúan la sesión y la bandera `isAdmin`.
@@ -51,6 +52,7 @@ MyStreeT es una aplicación web full-stack de tienda de sneakers que demuestra f
 ### 3.4 Carrito de compras en `localStorage`
 
 - **Decisión:** persistir el carrito del lado del cliente, gestionado por un `CartService` reactivo en Angular.
+- **Implementación:** cada línea del carrito se identifica por producto + talla; la cantidad nunca supera el `stockQty` y el carrito es independiente de la sesión (iniciar o cerrar sesión no lo vacía). El precio guardado sirve solo para mostrarlo.
 - **Ventajas:**
   - Permite a usuarios invitados agregar productos, cambiar tallas y cantidades y ver el total al instante sin iniciar sesión ni generar tráfico al servidor.
   - Reduce la complejidad del modelo de datos en backend (no hay tablas de carrito temporal).
@@ -77,6 +79,11 @@ MyStreeT es una aplicación web full-stack de tienda de sneakers que demuestra f
 - **Ventaja:** evita consultas con parámetros nulos y permite añadir filtros nuevos sin multiplicar métodos de repositorio.
 - **Trade-off:** es más abstracto que una consulta JPQL fija, y la búsqueda por talla depende de una colección de elementos (`product_sizes`).
 
+### 3.8 Guards de Angular frente a la seguridad real
+
+- **Decisión:** `authGuard` y `adminGuard` controlan el acceso a rutas del frontend (`/orders`, `/admin`) y redirigen a `/login` conservando la ruta de retorno.
+- **Límite:** los guards mejoran la experiencia, pero no son un control de seguridad: el contenido de `localStorage` puede editarse en el navegador. La protección real está en el backend, que exige un JWT válido y el rol `ADMIN` en las operaciones de escritura sobre productos (403 en caso contrario).
+
 ## 4. Estructura del repositorio
 
 ```
@@ -88,14 +95,22 @@ MyStreet/
 │       ├── dto/           # Request / Response / ApiError
 │       ├── exception/     # Excepciones de negocio
 │       ├── repository/    # Spring Data JPA
+│       ├── security/      # JwtService, filtro JWT y respuestas 401/403
 │       ├── service/       # Lógica de negocio
 │       └── web/           # Controllers y manejo global de errores
 ├── mystreet-web/          # Proyecto Angular
 │   └── src/app/
+│       ├── guards/        # authGuard y adminGuard
+│       ├── interceptors/  # authInterceptor (adjunta el JWT)
 │       ├── models/        # Interfaces TypeScript
-│       ├── services/      # ProductService (HttpClient)
+│       ├── services/      # ProductService, AuthService, CartService
 │       ├── product-list/  # Catálogo con filtros por marca y talla
-│       └── product-detail/# Detalle de producto
+│       ├── product-detail/# Detalle de producto y "Agregar al carrito"
+│       ├── cart/          # Página del carrito
+│       ├── login/         # Inicio de sesión (Reactive Forms)
+│       ├── register/      # Registro (Reactive Forms)
+│       ├── orders/        # Provisional: "Mis pedidos" (Sprint 3)
+│       └── admin-panel/   # Provisional: panel de administración (Sprint 3)
 ├── postman/               # Colección de Postman exportada (Sprint 3)
 ├── .vscode/tasks.json     # Tareas de arranque: backend, frontend y "dev: all"
 └── README.md
@@ -124,7 +139,7 @@ MyStreet/
    .\mvnw.cmd spring-boot:run
    ```
 
-   Para el perfil `prod`, define `DB_URL`, `DB_USER` y `DB_PASSWORD` y añade `-Dspring-boot.run.profiles=prod`.
+   Para el perfil `prod`, define `DB_URL`, `DB_USER` y `DB_PASSWORD` y añade `-Dspring-boot.run.profiles=prod`. Define también `JWT_SECRET` (mínimo 32 caracteres): en `dev` se usa un valor por defecto que no debe reutilizarse fuera del desarrollo.
 
 3. **Seed de datos:** se carga automáticamente al arrancar (es idempotente):
    - Administrador de desarrollo: `admin@mystreet.com` / `Admin123!` (`is_admin = true`).
@@ -156,25 +171,36 @@ La documentación interactiva está disponible en Swagger UI una vez iniciado el
 
 | Módulo | Método y ruta | Autorización | Descripción | Estado |
 |---|---|---|---|---|
-| Auth | `POST /api/auth/register` | Pública | Registra un nuevo usuario (201 Created). | Sprint 2 |
-| Auth | `POST /api/auth/login` | Pública | Autentica credenciales y devuelve JWT (200 OK). | Sprint 2 |
+| Auth | `POST /api/auth/register` | Pública | Registra un nuevo usuario y devuelve JWT (201 Created). | ✅ Sprint 2 |
+| Auth | `POST /api/auth/login` | Pública | Autentica credenciales y devuelve JWT (200 OK). | ✅ Sprint 2 |
 | Products | `GET /api/products` | Pública | Lista sneakers (filtros opcionales `?brand=&size=`). | ✅ Sprint 1 |
 | Products | `GET /api/products/{id}` | Pública | Devuelve el detalle de un producto. | ✅ Sprint 1 |
-| Products | `POST /api/products` | JWT + `isAdmin` | Crea un producto nuevo. | Implementado; protección en Sprint 2 |
-| Products | `PUT /api/products/{id}` | JWT + `isAdmin` | Actualiza un producto existente. | Implementado; protección en Sprint 2 |
-| Products | `DELETE /api/products/{id}` | JWT + `isAdmin` | Elimina un producto. | Implementado; protección en Sprint 2 |
+| Products | `POST /api/products` | JWT + `isAdmin` | Crea un producto nuevo. | ✅ Sprint 2 (solo admin) |
+| Products | `PUT /api/products/{id}` | JWT + `isAdmin` | Actualiza un producto existente. | ✅ Sprint 2 (solo admin) |
+| Products | `DELETE /api/products/{id}` | JWT + `isAdmin` | Elimina un producto. | ✅ Sprint 2 (solo admin) |
 | Orders | `POST /api/orders` | JWT (User) | Crea un pedido con estado `PLACED` y decrementa stock. | Sprint 3 |
 | Orders | `GET /api/orders/mine` | JWT (User) | Lista los pedidos del usuario autenticado. | Sprint 3 |
 | Orders | `GET /api/orders/{id}` | JWT (User) | Muestra el detalle de un pedido específico. | Sprint 3 |
 
-> Hasta el Sprint 2, los endpoints de escritura de productos están abiertos para facilitar las pruebas locales.
+> Las operaciones de escritura sobre productos exigen un JWT de administrador: sin token responden 401 y con un usuario normal responden 403.
 
-**Formato de errores:** las respuestas de error son JSON con `timestamp`, `status`, `error`, `message` y, en validaciones, `fieldErrors` por campo.
+**Formato de errores:** las respuestas de error son JSON con `timestamp`, `status`, `error`, `message` y, en validaciones, `fieldErrors` por campo. Códigos usados: 400 (validación), 401 (sin credenciales válidas), 403 (sin permisos), 404 (no encontrado) y 409 (correo ya registrado).
+
+### Rutas del frontend
+
+| Ruta | Acceso | Descripción |
+|---|---|---|
+| `/` | Pública | Catálogo con filtros por marca y talla. |
+| `/products/:id` | Pública | Detalle de producto y botón "Agregar al carrito". |
+| `/cart` | Pública | Carrito de compras (invitado o con sesión). |
+| `/login`, `/register` | Pública | Inicio de sesión y registro. |
+| `/orders` | `authGuard` | Provisional: "Mis pedidos" (Sprint 3). |
+| `/admin` | `adminGuard` | Provisional: panel de administración (Sprint 3). |
 
 ## 7. Pruebas, rendimiento y calidad
 
-- **Pruebas unitarias backend:** JUnit 5 + Mockito sobre la capa de servicios (objetivo ≥ 60 % de cobertura a nivel de método). Ejecución: `mvn test`. El reporte de cobertura de JaCoCo se genera en `target/site/jacoco`.
-- **Pruebas manuales y de API:** Swagger UI y colección de Postman en `/postman` (Sprint 3).
+- **Pruebas unitarias backend:** JUnit 5 + Mockito sobre la capa de servicios (objetivo ≥ 60 % de cobertura a nivel de método). Ejecución: `mvn test`. El reporte de cobertura de JaCoCo se genera en `target/site/jacoco`. Estado actual: 10 pruebas en verde (productos y autenticación). Cobertura medida: 92% _completar tras ejecutar `mvn test`_.
+- **Pruebas manuales y de API:** Swagger UI y colección de Postman en `/postman` (Sprint 3). En el Sprint 2 se verificó manualmente la matriz de seguridad: catálogo público (200), escritura sin token (401), con usuario normal (403) y con administrador (201).
 - **Concurrencia y SLAs locales:** prueba de 5–10 peticiones concurrentes (Postman Runner o múltiples pestañas), verificando < 1 s en llamadas API y < 5 s en la carga inicial en `localhost`.
 - **Flujo Git:** rama `main` estable, desarrollo en ramas `feature/*` y revisión mediante Pull Requests.
 
@@ -183,7 +209,7 @@ La documentación interactiva está disponible en Swagger UI una vez iniciado el
 | Sprint | Alcance | Estado |
 |---|---|---|
 | **Sprint 1** | Proyecto Spring Boot, entidades JPA, CRUD de productos con filtros y seed; catálogo Angular conectado a la API con filtros por marca y talla, "Limpiar filtros" y detalle de producto. | ✅ Completado |
-| **Sprint 2** | Registro y login con JWT y BCrypt, `isAdmin`, interceptor y guards, `CartService` en `localStorage`, validación de entradas y protección de endpoints de administración. | Pendiente |
+| **Sprint 2** | Registro y login con JWT y BCrypt, `isAdmin`, interceptor y guards, `CartService` en `localStorage` con página de carrito, validación de entradas y protección de endpoints de administración. | ✅ Completado |
 | **Sprint 3** | `POST /api/orders` con decremento de stock, `GET /api/orders/mine`, checkout con pago simulado, panel admin, colección Postman, pruebas ≥ 60 % y README final. | Pendiente |
 
 ## 9. Registro de uso de IA generativa (prompts)
@@ -194,5 +220,5 @@ La documentación interactiva está disponible en Swagger UI una vez iniciado el
 |---|---|---|---|
 | Fase 0 | Gemini | Planificación y documentación | Creación del plan de actividades paso a paso y borrador inicial del README acoplado a Angular y JWT. |
 | Sprint 1 | Claude | Backend, frontend y documentación | Revisión del README y ajuste del stack; scaffold del backend Spring Boot (entidades, CRUD de productos, seed, pruebas unitarias); conexión del catálogo Angular a la API, filtros por marca y talla, detalle de producto; configuración del monorepo en VS Code; primer commit y actualización de este README. |
-| Sprint 2 | (Por completar) | (Por completar) | (Por completar) |
+| Sprint 2 | Claude | Backend, frontend y pruebas | Diseño e implementación de la autenticación JWT con Spring Security (registro, login, filtro y reglas por rol), pruebas unitarias con Mockito, y en Angular `AuthService`, interceptor, login y registro con Reactive Forms, guards, barra de navegación y `CartService` con página de carrito; apoyo para diagnosticar errores de pruebas y de ejecución. |
 | Sprint 3 | (Por completar) | (Por completar) | (Por completar) |
